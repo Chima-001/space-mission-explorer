@@ -168,7 +168,7 @@ const footerTemplate = () => `
   <div class="footer-middle">
     <div class="footer-left">
       <a href="${withBase("attributions/")}">Attributions and sources</a>
-      <a href="mailto:hello@spacemissionexplorer.space">hello@spacemissionexplorer.space</a>
+      <a href="mailto:spacemissionexplorer@space.com">spacemissionexplorer@space.com</a>
       <a href="https://youtube.com" target="_blank" rel="noopener">Project video</a>
     </div>
     <div class="social-links">
