@@ -1,0 +1,14 @@
+# Render Blueprint: static site, no server and no database.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: space-mission-explorer
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    # Any unknown path falls back to the home page, so a mistyped URL is not a
+    # blank 404. Every real page is a real file, so this never hides a bug.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,4 +1,4 @@
-// All saved-mission and preference storage lives here.
+// All saved-mission and display-preference storage lives here.
 // Keys: sme:saved (compact records), sme:prefs (display preferences).
 const SAVED_KEY = "sme:saved";
 const PREFS_KEY = "sme:prefs";

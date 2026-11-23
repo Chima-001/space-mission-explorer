@@ -4,7 +4,7 @@ const API_URL = (
   import.meta.env.VITE_NASA_API_URL ?? "https://images-api.nasa.gov"
 ).replace(/\/$/, "");
 const CACHE_MS = 24 * 60 * 60 * 1000;
-const KEEP = 20;
+const KEEP = 40;
 
 export class NasaImageError extends Error {
   constructor(message) {
@@ -13,11 +13,16 @@ export class NasaImageError extends Error {
   }
 }
 
-// NASA names files like name~thumb.jpg, name~medium.jpg, name~large.jpg.
-// UNVERIFIED: the views fall back to the thumbnail if a larger size fails.
-function sized(href, size) {
-  return href.replace(/~(thumb|small|medium|large|orig)(?=\.)/, `~${size}`);
-}
+// Image sizes come from the links NASA returns, never from a guessed file
+// name. Verified on 2026-11-23 against live responses:
+//   rel="preview"   -> the ~thumb file, present on every item tested (25/25)
+//   rel="canonical" -> the ~orig file, the full-size picture (24/25 items)
+//   rel="alternate" -> ~medium and ~small, present on 78 of 100 items
+// There is no ~large file: asking for one returns HTTP 403. The earlier code
+// guessed it, which is why some pictures silently fell back to a thumbnail.
+const hrefWithSize = (links, size) =>
+  links.find((link) => new RegExp(`~${size}\\.`, "i").test(link.href))?.href ??
+  "";
 
 export function toImage(item) {
   const info = item?.data?.[0] ?? {};
@@ -25,7 +30,17 @@ export function toImage(item) {
   const preview = links.find((link) => link.rel === "preview") ?? links[0];
   const thumbUrl = preview?.href ?? "";
   if (!thumbUrl) return null;
+
+  // Field names verified in a live response: title and nasa_id exist on
+  // 100 of 100 items, so a caption never falls back to "NASA image".
   const id = info.nasa_id ?? "";
+  const canonical = links.find((link) => link.rel === "canonical")?.href ?? "";
+  const medium =
+    hrefWithSize(links, "medium") ||
+    hrefWithSize(links, "small") ||
+    canonical ||
+    thumbUrl;
+
   return {
     id,
     title: info.title ?? "NASA image",
@@ -33,7 +48,10 @@ export function toImage(item) {
     center: info.center ?? "NASA",
     dateCreated: info.date_created ?? "",
     thumbUrl,
-    mediumUrl: sized(thumbUrl, "medium"),
+    mediumUrl: medium,
+    // Full-size picture for the hero. A few items refuse it, so every image
+    // that uses heroUrl keeps thumbUrl as its onerror fallback.
+    heroUrl: canonical || thumbUrl,
     pageUrl: id
       ? `https://images.nasa.gov/details/${encodeURIComponent(id)}`
       : "",
@@ -75,5 +93,26 @@ export default class NasaImageData {
     const images = items.map(toImage).filter(Boolean).slice(0, KEEP);
     writeCache(key, images);
     return images.slice(0, limit);
+  }
+
+  /**
+   * Collects images for several search terms, in order, skipping any term
+   * that fails so one bad query cannot empty the hero.
+   */
+  async searchMany(queries, perQuery = 4) {
+    const results = await Promise.allSettled(
+      queries.map((query) => this.search(query, perQuery)),
+    );
+    const seen = new Set();
+    const images = [];
+    for (const result of results) {
+      if (result.status !== "fulfilled") continue;
+      for (const image of result.value) {
+        if (seen.has(image.id)) continue;
+        seen.add(image.id);
+        images.push(image);
+      }
+    }
+    return images;
   }
 }

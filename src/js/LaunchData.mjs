@@ -5,9 +5,25 @@ const API_URL = (
   import.meta.env.VITE_LAUNCH_API_URL ?? "https://ll.thespacedevs.com/2.2.0"
 ).replace(/\/$/, "");
 const USE_SAMPLE = import.meta.env.VITE_USE_SAMPLE === "true";
-const CACHE_MS = 30 * 60 * 1000;
-const PAGE_SIZE = 20;
-const KINDS = ["upcoming", "previous"];
+// Launch dates and statuses change during the day, so a page is refreshed
+// after 10 minutes: a new visit or a refresh picks up changes, while normal
+// browsing stays within the 15 requests per hour limit.
+const CACHE_MS = 10 * 60 * 1000;
+
+// One request loads up to 100 launches. 100 is the API's ceiling: its own
+// documentation answers ?limit=150 with a "next" link of limit=100, so a
+// bigger number is silently capped. More launches are fetched with ?offset=,
+// so "Load more" can reach every launch the API holds, not a fixed slice.
+const PAGE_SIZE = 100;
+
+// The query-string value, the API path and the sample file all use a
+// different word for the same list. Keeping them in one place prevents the
+// "Unknown launch list" bug where ?view=past reached the data layer.
+export const VIEWS = {
+  upcoming: { api: "upcoming", file: "upcoming", label: "Upcoming" },
+  past: { api: "previous", file: "previous", label: "Past" },
+};
+
 const ID_PATTERN = /^[\w-]{1,64}$/;
 
 export class LaunchDataError extends Error {
@@ -52,45 +68,73 @@ async function readJson(response) {
   }
 }
 
-function parseResults(json) {
+function resolveView(view) {
+  const meta = VIEWS[view];
+  if (!meta) {
+    throw new LaunchDataError("invalid", "Unknown launch list.");
+  }
+  return meta;
+}
+
+/** Reads one page of launches. `total` is how many exist on the server. */
+async function fetchPage(meta, offset = 0) {
+  const query = `limit=${PAGE_SIZE}${offset ? `&offset=${offset}` : ""}`;
+  const json = await readJson(
+    await request(`${API_URL}/launch/${meta.api}/?${query}`),
+  );
   if (!Array.isArray(json?.results)) {
     throw new LaunchDataError(
       "invalid",
       "The launch data service sent an unexpected response.",
     );
   }
-  return json.results.map(toMission);
+  const count = Number(json.count);
+  return {
+    missions: json.results.map(toMission),
+    total: Number.isFinite(count) && count > 0 ? count : null,
+  };
 }
 
-async function fetchFromNetwork(kind) {
-  const response = await request(
-    `${API_URL}/launch/${kind}/?limit=${PAGE_SIZE}`,
+async function fetchSample(meta) {
+  const json = await readJson(
+    await request(`${import.meta.env.BASE_URL}data/sample-${meta.file}.json`),
   );
-  return parseResults(await readJson(response));
+  if (!Array.isArray(json?.results)) {
+    throw new LaunchDataError(
+      "invalid",
+      "The sample launch data could not be read.",
+    );
+  }
+  const missions = json.results.map(toMission);
+  // A sample file is a fixed snapshot, so its own length is the total.
+  return { missions, total: missions.length, source: "sample" };
 }
 
-async function fetchSample(kind) {
-  const response = await request(
-    `${import.meta.env.BASE_URL}data/sample-${kind}.json`,
-  );
-  return { missions: parseResults(await readJson(response)), source: "sample" };
+/** Cache holds { missions, total }. Older entries held a bare array. */
+function cacheList(payload) {
+  if (Array.isArray(payload)) return { missions: payload, total: null };
+  return {
+    missions: Array.isArray(payload?.missions) ? payload.missions : [],
+    total: Number.isFinite(payload?.total) ? payload.total : null,
+  };
 }
 
 function findCached(id) {
-  for (const kind of KINDS) {
-    const cached = readCache(`launches:${kind}`, Infinity);
-    const hit = Array.isArray(cached?.data)
-      ? cached.data.find((mission) => mission.id === id)
-      : null;
+  for (const meta of Object.values(VIEWS)) {
+    const cached = readCache(`launches:${meta.api}`, Infinity);
+    if (!cached) continue;
+    const hit = cacheList(cached.data).missions.find(
+      (mission) => mission.id === id,
+    );
     if (hit) return hit;
   }
   return null;
 }
 
 async function findInSamples(id) {
-  for (const kind of KINDS) {
+  for (const meta of Object.values(VIEWS)) {
     try {
-      const { missions } = await fetchSample(kind);
+      const { missions } = await fetchSample(meta);
       const hit = missions.find((mission) => mission.id === id);
       if (hit) return hit;
     } catch {
@@ -100,46 +144,78 @@ async function findInSamples(id) {
   return null;
 }
 
+const uniqueById = (missions) => {
+  const seen = new Set();
+  return missions.filter((mission) => {
+    if (seen.has(mission.id)) return false;
+    seen.add(mission.id);
+    return true;
+  });
+};
+
 export default class LaunchData {
   /**
-   * Returns { missions, source, savedAt?, error? }.
+   * First page of a list.
+   * Returns { missions, total, source, savedAt?, error? }.
    * source: "network" | "cache" | "stale-cache" | "sample".
-   * `error` is set when a fallback was used because the network failed.
+   * `total` is how many launches exist on the server, for "Load more".
    */
-  async getMissions(kind) {
-    if (!KINDS.includes(kind)) {
-      throw new LaunchDataError("invalid", "Unknown launch list.");
-    }
-    if (USE_SAMPLE) return fetchSample(kind);
+  async getMissions(view) {
+    const meta = resolveView(view);
+    if (USE_SAMPLE) return fetchSample(meta);
 
-    const key = `launches:${kind}`;
+    const key = `launches:${meta.api}`;
     const cached = readCache(key, CACHE_MS);
     if (cached?.fresh) {
-      return {
-        missions: cached.data,
-        source: "cache",
-        savedAt: cached.savedAt,
-      };
+      const { missions, total } = cacheList(cached.data);
+      return { missions, total, source: "cache", savedAt: cached.savedAt };
     }
     try {
-      const missions = await fetchFromNetwork(kind);
-      writeCache(key, missions);
-      return { missions, source: "network", savedAt: Date.now() };
+      const page = await fetchPage(meta);
+      writeCache(key, page);
+      return { ...page, source: "network", savedAt: Date.now() };
     } catch (error) {
       if (cached) {
+        const { missions, total } = cacheList(cached.data);
         return {
-          missions: cached.data,
+          missions,
+          total,
           source: "stale-cache",
           savedAt: cached.savedAt,
           error,
         };
       }
       try {
-        return { ...(await fetchSample(kind)), error };
+        return { ...(await fetchSample(meta)), error };
       } catch {
         throw error;
       }
     }
+  }
+
+  /**
+   * Next page of the same list, continuing from what is cached.
+   * Returns { missions (only the new ones), total, source }.
+   * Throws when the network fails, because there is nothing to fall back to
+   * without inventing launches that were never loaded.
+   */
+  async loadMore(view) {
+    const meta = resolveView(view);
+    if (USE_SAMPLE)
+      return { missions: [], total: null, source: "sample-empty" };
+
+    const key = `launches:${meta.api}`;
+    const cached = readCache(key, Infinity);
+    const { missions: loaded, total } = cacheList(cached?.data);
+    if (total !== null && loaded.length >= total) {
+      return { missions: [], total, source: "cache" };
+    }
+
+    const page = await fetchPage(meta, loaded.length);
+    const merged = uniqueById([...loaded, ...page.missions]);
+    const nextTotal = page.total ?? total;
+    writeCache(key, { missions: merged, total: nextTotal });
+    return { missions: page.missions, total: nextTotal, source: "network" };
   }
 
   /** Returns one mission, or null when the id is invalid or unknown. */

@@ -3,13 +3,12 @@ import { fileURLToPath } from "node:url";
 
 const page = (path) => fileURLToPath(new URL(path, import.meta.url));
 
-// GitHub Pages serves this repo from /space-mission-explorer/.
-// Other hosts (Render, Netlify) serve from "/", so set BASE_PATH=/ there.
-export default defineConfig(({ command }) => ({
+// A build defaults to "/" so Render and Netlify work with no configuration.
+// GitHub Pages serves this repo from a sub-path, so the deploy workflow sets
+// BASE_PATH=/space-mission-explorer/ before building.
+export default defineConfig(() => ({
   root: "src",
-  base:
-    process.env.BASE_PATH ??
-    (command === "build" ? "/space-mission-explorer/" : "/"),
+  base: process.env.BASE_PATH ?? "/",
   build: {
     outDir: "../dist",
     emptyOutDir: true,
@@ -19,6 +18,7 @@ export default defineConfig(({ command }) => ({
         missions: page("./src/missions/index.html"),
         mission: page("./src/mission/index.html"),
         saved: page("./src/saved/index.html"),
+        attributions: page("./src/attributions/index.html"),
       },
     },
   },
