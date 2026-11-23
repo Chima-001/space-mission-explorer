@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Missions | Space Mission Explorer</title>
+    <meta
+      name="description"
+      content="Search, filter and sort upcoming and past space launches by name, rocket, provider or location."
+    />
+    <link rel="icon" href="../images/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/style.css" />
+    <script type="module" src="../js/missions.js"></script>
+  </head>
+  <body>
+    <header id="site-header" class="site-header"></header>
+    <main id="main" tabindex="-1">
+      <h1 id="page-title">Upcoming missions</h1>
+      <div class="view-switch" role="group" aria-label="Mission list">
+        <button
+          type="button"
+          class="seg"
+          data-view="upcoming"
+          aria-pressed="true"
+        >
+          Upcoming
+        </button>
+        <button type="button" class="seg" data-view="past" aria-pressed="false">
+          Past
+        </button>
+      </div>
+      <div class="toolbar" role="search">
+        <div class="field">
+          <label for="search">Search</label>
+          <input
+            id="search"
+            type="search"
+            placeholder="Name, rocket, provider, location"
+            autocomplete="off"
+          />
+        </div>
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="all">All statuses</option>
+            <option value="go">Go or scheduled</option>
+            <option value="ok">Successful</option>
+            <option value="bad">Failed</option>
+            <option value="hold">On hold</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sort">Sort by date</label>
+          <select id="sort">
+            <option value="asc">Soonest first</option>
+            <option value="desc">Latest first</option>
+          </select>
+        </div>
+      </div>
+      <p id="result-count" class="muted" role="status" aria-live="polite"></p>
+      <div id="notice"></div>
+      <section aria-labelledby="list-title">
+        <h2 id="list-title" class="sr-only">Mission results</h2>
+        <div id="mission-list" class="grid"></div>
+      </section>
+      <p class="center">
+        <button id="load-more" type="button" class="btn btn-ghost" hidden>
+          Load more
+        </button>
+      </p>
+      <p id="live" class="sr-only" role="status" aria-live="polite"></p>
+    </main>
+    <footer id="site-footer" class="site-footer"></footer>
+  </body>
+</html>

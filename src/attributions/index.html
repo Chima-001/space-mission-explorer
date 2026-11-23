@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Attributions and sources | Space Mission Explorer</title>
+    <meta
+      name="description"
+      content="The data sources, credits and licences behind Space Mission Explorer, including Launch Library 2 and the NASA Image and Video Library."
+    />
+    <link rel="icon" href="../images/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/style.css" />
+    <script type="module" src="../js/attributions.js"></script>
+  </head>
+  <body>
+    <header id="site-header" class="site-header"></header>
+    <main id="main" tabindex="-1">
+      <p class="eyebrow">Credits</p>
+      <h1 id="page-title" tabindex="-1">Attributions and sources</h1>
+      <p class="muted intro-text">
+        Space Mission Explorer is an educational project. It does not own any of
+        the launch or image data it displays; everything belongs to the
+        organisations below, and every record links back to its source.
+      </p>
+
+      <section aria-labelledby="launch-data">
+        <h2 id="launch-data">Launch data</h2>
+        <p>
+          Launch schedules, statuses, rockets, pads, providers and mission
+          descriptions come from
+          <a href="https://thespacedevs.com/" target="_blank" rel="noopener"
+            >The Space Devs</a
+          >, through their
+          <a
+            href="https://ll.thespacedevs.com/2.2.0/"
+            target="_blank"
+            rel="noopener"
+            >Launch Library 2</a
+          >
+          API.
+        </p>
+        <ul class="source-list">
+          <li>
+            Endpoints used: <code>/launch/upcoming/</code> and
+            <code>/launch/previous/</code>, plus
+            <code>/launch/&lt;id&gt;/</code> for a single mission.
+          </li>
+          <li>No API key is required, and no account is used.</li>
+          <li>
+            Requests are limited, so responses are cached in your browser for 30
+            minutes.
+          </li>
+          <li>
+            Launch images are hosted and credited by The Space Devs on their own
+            media CDN.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="nasa-data">
+        <h2 id="nasa-data">Imagery</h2>
+        <p>
+          The hero images, the featured picture and the related images on
+          mission pages come from the
+          <a href="https://images.nasa.gov/" target="_blank" rel="noopener"
+            >NASA Image and Video Library</a
+          >, which is operated by NASA.
+        </p>
+        <ul class="source-list">
+          <li>
+            Search requests use <code>images-api.nasa.gov/search</code> with
+            <code>media_type=image</code>.
+          </li>
+          <li>
+            Each picture credits its NASA centre, such as JPL, GSFC or KSC, in
+            the caption.
+          </li>
+          <li>
+            Clicking a picture opens the original record on images.nasa.gov.
+          </li>
+          <li>
+            NASA does not endorse this project. NASA content is generally not
+            protected by copyright, but NASA's media guidelines still apply to
+            its use.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="fonts">
+        <h2>Fonts and type</h2>
+        <ul class="source-list">
+          <li>
+            <a
+              href="https://fonts.google.com/specimen/Space+Grotesk"
+              target="_blank"
+              rel="noopener"
+              >Space Grotesk</a
+            >
+            for headings, used under the SIL Open Font License.
+          </li>
+          <li>
+            <a
+              href="https://fonts.google.com/specimen/Inter"
+              target="_blank"
+              rel="noopener"
+              >Inter</a
+            >
+            for body text, used under the SIL Open Font License.
+          </li>
+          <li>
+            Both are served by Google Fonts, with system fonts as a fallback.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="project">
+        <h2 id="project">This project</h2>
+        <p>
+          Space Mission Explorer was built by Chimamkpam Nnaji for WDD 330 at
+          BYU-Idaho. It is written in plain HTML, CSS and JavaScript modules,
+          bundled with Vite. It has no backend, no accounts and no tracking.
+        </p>
+        <ul class="source-list">
+          <li>
+            Source code:
+            <a
+              href="https://github.com/Chima-001/space-mission-explorer"
+              target="_blank"
+              rel="noopener"
+              >github.com/Chima-001/space-mission-explorer</a
+            >
+          </li>
+          <li>
+            Contact:
+            <a href="mailto:cnnaji2@byupathway.edu">cnnaji2@byupathway.edu</a>
+          </li>
+          <li>
+            The app is not real-time mission control and must not be used for
+            launch operations.
+          </li>
+        </ul>
+      </section>
+
+      <p class="center">
+        <a class="btn btn-ghost" href="#" id="back-home">Back to home</a>
+      </p>
+      <p id="live" class="sr-only" role="status" aria-live="polite"></p>
+    </main>
+    <footer id="site-footer" class="site-footer"></footer>
+  </body>
+</html>
