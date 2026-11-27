@@ -309,26 +309,22 @@ main {
   display: grid;
   align-items: end;
   min-height: clamp(380px, 60vh, 540px);
-  margin: 0.5rem 0 0;
-  padding: 2rem 1.25rem 2.5rem;
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  /* Full-bleed at every width, including phones: the hero spans the window
+     instead of the centred content column. The side padding keeps the copy
+     aligned with the page content instead of touching the edge. */
+  width: 100vw;
+  margin: 0 calc(50% - 50vw);
+  padding: 2rem max(1rem, calc(50vw - var(--wrap) / 2 + 1rem)) 2.5rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   overflow: hidden;
   background: linear-gradient(200deg, #1b1230, #0a0714 60%);
 }
-/* Full-bleed on tablet and up: the hero spans the window instead of the
-   centred content column, like a hero banner should. */
+/* Taller banner once there is room for it. */
 @media (min-width: 760px) {
   .hero {
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    margin-top: 0;
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    padding-left: max(1.25rem, calc(50vw - var(--wrap) / 2));
-    padding-right: max(1.25rem, calc(50vw - var(--wrap) / 2));
     min-height: clamp(420px, 62vh, 620px);
   }
   .hero-copy {
